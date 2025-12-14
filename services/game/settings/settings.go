@@ -178,15 +178,17 @@ func (m *model) View() string {
 		}
 	}
 
-	minItem := m.cursor - 2
-	maxItem := m.cursor + 2
+	aroundCursor := 3
+
+	minItem := m.cursor - aroundCursor
+	maxItem := m.cursor + aroundCursor
 	if minItem < 0 {
-		maxItem = 4
+		maxItem = aroundCursor * 2
 		minItem = 0
 	}
 
 	if maxItem > len(choices) {
-		minItem = len(choices) - 4
+		minItem = len(choices) - aroundCursor*2
 		maxItem = len(choices)
 	}
 

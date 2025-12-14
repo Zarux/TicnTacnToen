@@ -34,13 +34,16 @@ func (s *Service) NewGame(ctx context.Context) error {
 func (s *Service) Play(ctx context.Context) error {
 	bot := mcts.New(4, 100_000)
 
-	game, err := tictactoe.New(4, 3)
+	game, err := tictactoe.New(3, 3)
 	if err != nil {
 		return err
 	}
 
 	board := game.Board
-
+	board.ApplyMove(6, tictactoe.P1)
+	board.Print()
+	board.ApplyMove(2, tictactoe.P2)
+	board.Print()
 	turnNumber := 0
 	player := tictactoe.P1
 	for {

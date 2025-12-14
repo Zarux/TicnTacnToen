@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"slices"
 	"sync"
@@ -58,6 +59,7 @@ type Board struct {
 	Cells    []Player
 	LastMove int
 	Hash     uint64
+	Turn     int
 
 	xList      []int
 	yList      []int
@@ -152,6 +154,7 @@ func (b *Board) Clone() *Board {
 		emptyCells: emptyCells,
 		Hash:       b.Hash,
 		LastMove:   b.LastMove,
+		Turn:       b.Turn,
 		game:       b.game,
 	}
 }
@@ -263,20 +266,28 @@ func (b *Board) checkOneColorFromSide(x, y, dx, dy int) bool {
 	return count >= b.K
 }
 
-func (b *Board) hasNeighbor(idx int) (hasNeighbor bool) {
-	x := idx % b.N
-	y := idx / b.N
+func (b *Board) hasNeighbor(idx int, r int) bool {
+	x := b.xList[idx]
+	y := b.yList[idx]
 
-	for _, dx := range []int{-1, 1} {
-		for _, dy := range []int{-1, 1} {
+	for dy := -r; dy <= r; dy++ {
+		ny := y + dy
+		if ny < 0 || ny >= b.N {
+			continue
+		}
+
+		for dx := -r; dx <= r; dx++ {
 			nx := x + dx
-			ny := y + dy
-
-			if nx < 0 || ny < 0 || nx >= b.N || ny >= b.N {
+			if nx < 0 || nx >= b.N {
 				continue
 			}
 
-			if b.Cells[b.GetIdx(nx, ny)] != Empty {
+			if dx == 0 && dy == 0 {
+				continue
+			}
+
+			nidx := ny*b.N + nx
+			if b.Cells[nidx] != Empty {
 				return true
 			}
 		}
@@ -345,6 +356,14 @@ func (b *Board) biasedRandomMoves() []int {
 	var tactical []int
 	var empty []int
 
+	r := 2
+	switch {
+	case b.Turn < 2:
+		r = 0
+	case b.Turn < 4:
+		r = 1
+	}
+
 	for m, p := range b.Cells {
 		if p != Empty {
 			continue
@@ -353,9 +372,10 @@ func (b *Board) biasedRandomMoves() []int {
 		empty = append(empty, m)
 
 		t := time.Now()
-		if b.hasNeighbor(m) {
+		if b.hasNeighbor(m, r) {
 			near = append(near, m)
 		}
+
 		timeSpentNeighbour += time.Since(t)
 
 		t = time.Now()
@@ -370,7 +390,8 @@ func (b *Board) biasedRandomMoves() []int {
 		return tactical
 	}
 
-	if len(near) > 0 {
+	eps := math.Max(0.05, 0.3*math.Exp(-0.1*float64(b.Turn)))
+	if len(near) > 0 && rand.Float64() < eps {
 		return near
 	}
 

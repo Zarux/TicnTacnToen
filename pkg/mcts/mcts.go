@@ -47,6 +47,8 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 		return move
 	}
 
+	rootBoard.Turn = (rootBoard.N * rootBoard.N) - len(rootBoard.LegalMoves())
+
 	results := make(chan map[int]int, c.threads)
 	var wg sync.WaitGroup
 	wg.Add(c.threads)
