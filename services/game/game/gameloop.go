@@ -24,6 +24,7 @@ type model struct {
 	bot           botPlayer
 	spinner       spinner.Model
 	sub           chan botDoneMsg
+	header        string
 
 	gameOver bool
 	winner   tictactoe.Player
@@ -45,7 +46,7 @@ var (
 	bracketStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#9e9e9eff", Dark: "#9e9e9eff"}).Render
 )
 
-func InitialModel(b *tictactoe.Board, bot botPlayer, playerStone tictactoe.Player) *model {
+func InitialModel(header string, b *tictactoe.Board, bot botPlayer, playerStone tictactoe.Player) *model {
 	s := spinner.New()
 	s.Spinner = spinner.Points
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
@@ -58,6 +59,7 @@ func InitialModel(b *tictactoe.Board, bot botPlayer, playerStone tictactoe.Playe
 		spinner:       s,
 		sub:           make(chan botDoneMsg),
 		Replay:        false,
+		header:        header,
 	}
 }
 
@@ -269,9 +271,11 @@ func (m model) View() string {
 		return ""
 	}
 
+	s := m.header
+
 	botTurn := m.bot != nil && m.currentPlayer == m.botPlayer && !m.gameOver
 
-	s := "Current player: "
+	s += "Current player: "
 	switch m.currentPlayer {
 	case tictactoe.P1:
 		s += p1Style(m.currentPlayer.Mark())

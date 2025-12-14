@@ -38,6 +38,7 @@ const (
 type model struct {
 	cursor      int
 	choiceLevel choiceLevel
+	header      string
 
 	settings settings
 
@@ -48,8 +49,10 @@ func (m model) GetSettings() settings {
 	return m.settings
 }
 
-func InitialModel() *model {
-	return &model{}
+func InitialModel(header string) *model {
+	return &model{
+		header: header,
+	}
 }
 
 func (m *model) Init() tea.Cmd {
@@ -145,6 +148,8 @@ func (m *model) View() string {
 	var choices []int
 
 	s := strings.Builder{}
+	s.WriteString(m.header)
+
 	if m.choiceLevel == choiceLevelP {
 		s.WriteString("Choose stone:\n")
 		for i := pChoiceRange[0]; i <= pChoiceRange[1]; i++ {

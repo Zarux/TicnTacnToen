@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Zarux/ticntacntoen/pkg/tictactoe"
 	"github.com/Zarux/ticntacntoen/services/game/game"
@@ -29,8 +30,8 @@ func New(bot botPlayer) *Service {
 }
 
 func (s *Service) Play() {
-	settingsModel := settings.InitialModel()
-	p := tea.NewProgram(settingsModel)
+	settingsModel := settings.InitialModel(header())
+	p := tea.NewProgram(settingsModel, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		os.Exit(1)
 	}
@@ -41,9 +42,9 @@ func (s *Service) Play() {
 
 	for {
 		g, _ := tictactoe.New(settings.N, settings.K)
-		gameModel := game.InitialModel(g.Board, s.bot, settings.P)
+		gameModel := game.InitialModel(header(), g.Board, s.bot, settings.P)
 
-		p = tea.NewProgram(gameModel)
+		p = tea.NewProgram(gameModel, tea.WithAltScreen())
 		if _, err := p.Run(); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -53,4 +54,21 @@ func (s *Service) Play() {
 			break
 		}
 	}
+}
+
+var (
+	headerStyle1 = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#4204b5ff", Dark: "#4204b5ff"}).Render
+	headerStyle2 = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#19b504ff", Dark: "#19b504ff"}).Render
+	headerStyle3 = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#b55404ff", Dark: "#b55404ff"}).Render
+)
+
+func header() string {
+	return fmt.Sprintf(
+		"%s %s %s %s %s\n\n",
+		headerStyle2("---"),
+		headerStyle1("Ticᴺ"),
+		headerStyle2("Tacᴺ"),
+		headerStyle3("Toeᴺ"),
+		headerStyle2("---"),
+	)
 }
