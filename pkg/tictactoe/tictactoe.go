@@ -372,7 +372,7 @@ func (b *Board) biasedRandomMoves() []int {
 		empty = append(empty, m)
 
 		t := time.Now()
-		if b.hasNeighbor(m, r) {
+		if r > 0 && b.hasNeighbor(m, r) {
 			near = append(near, m)
 		}
 

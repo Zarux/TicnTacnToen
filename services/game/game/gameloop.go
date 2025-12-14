@@ -40,11 +40,17 @@ func (m model) Init() tea.Cmd {
 }
 
 var (
-	p1Style      = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#007e50ff", Dark: "#04B575"}).Render
-	p2Style      = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0004ffff", Dark: "#0483b5ff"}).Render
-	cursorStyle  = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ff0000ff", Dark: "#ec6b6bff"}).Render
-	bracketStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#9e9e9eff", Dark: "#9e9e9eff"}).Render
+	p1Style              = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#007e50ff", Dark: "#007e50ff"}).Render
+	p2Style              = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0004ffff", Dark: "#0004ffff"}).Render
+	cursorStyle          = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ff0000ff", Dark: "#ff0000ff"}).Render
+	bracketStyle         = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#8f8f8fff", Dark: "#8f8f8fff"}).Render
+	lastMoveBracketStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ffffffff", Dark: "#ffffffff"}).Render
 )
+
+var colors = []func(strs ...string) string{
+	bracketStyle,
+	lastMoveBracketStyle,
+}
 
 func InitialModel(header string, b *tictactoe.Board, bot botPlayer, playerStone tictactoe.Player) *model {
 	s := spinner.New()
@@ -297,6 +303,7 @@ func (m model) View() string {
 
 		if botTurn && p == tictactoe.Empty {
 			mark = []string{"o", "x"}[rand.N(2)]
+			mark = colors[rand.IntN(len(colors))](mark)
 		}
 
 		switch p {
@@ -306,7 +313,12 @@ func (m model) View() string {
 			mark = p2Style(p.Mark())
 		}
 
-		s += fmt.Sprintf("%s%s%s", bracketStyle("["), mark, bracketStyle("]"))
+		style := bracketStyle
+		if m.board.Turn > 0 && m.board.LastMove == i {
+			style = lastMoveBracketStyle
+		}
+
+		s += fmt.Sprintf("%s%s%s", style("["), mark, style("]"))
 		if (i+1)%m.board.N == 0 {
 			s += "\n"
 		}
