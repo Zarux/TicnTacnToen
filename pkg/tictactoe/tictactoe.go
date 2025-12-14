@@ -89,9 +89,6 @@ func (b *Board) Play(p Player, m Move) {
 
 func (b *Board) ApplyMove(idx int, p Player) error {
 	if b.Cells[idx] != Empty {
-		b.Print()
-		fmt.Println(idx)
-		fmt.Println(b.emptyCells)
 		return errIllegalMove
 	}
 
@@ -234,9 +231,8 @@ func (b *Board) checkOneColorFromSide(x, y, dx, dy int) bool {
 		return false
 	}
 
-	count := 1 // stone we "place" at center
+	count := 1
 
-	// forward
 	fx, fy := nx, ny
 	for {
 		count++
@@ -250,7 +246,6 @@ func (b *Board) checkOneColorFromSide(x, y, dx, dy int) bool {
 		}
 	}
 
-	// backward
 	bx := x - dx
 	by := y - dy
 	for {

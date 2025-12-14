@@ -39,12 +39,18 @@ func (s *Service) Play() {
 
 	s.bot.UpdateThinkTime(settings.ThinkTime)
 
-	g, _ := tictactoe.New(settings.N, settings.K)
-	gameModel := game.InitialModel(g.Board, s.bot, settings.P)
+	for {
+		g, _ := tictactoe.New(settings.N, settings.K)
+		gameModel := game.InitialModel(g.Board, s.bot, settings.P)
 
-	p = tea.NewProgram(gameModel)
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
+		p = tea.NewProgram(gameModel)
+		if _, err := p.Run(); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		if !gameModel.Replay {
+			break
+		}
 	}
 }

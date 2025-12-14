@@ -27,6 +27,7 @@ type model struct {
 
 	gameOver bool
 	winner   tictactoe.Player
+	Replay   bool
 }
 
 func (m model) Init() tea.Cmd {
@@ -44,22 +45,23 @@ var (
 	bracketStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#9e9e9eff", Dark: "#9e9e9eff"}).Render
 )
 
-func InitialModel(b *tictactoe.Board, bot botPlayer, playerStone tictactoe.Player) model {
+func InitialModel(b *tictactoe.Board, bot botPlayer, playerStone tictactoe.Player) *model {
 	s := spinner.New()
 	s.Spinner = spinner.Points
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
-	return model{
+	return &model{
 		board:         b,
 		currentPlayer: tictactoe.P1,
 		botPlayer:     -playerStone,
 		bot:           bot,
 		spinner:       s,
 		sub:           make(chan botDoneMsg),
+		Replay:        false,
 	}
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case botDoneMsg:
@@ -126,6 +128,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			if m.gameOver {
+				m.Replay = true
 				return m, tea.Quit
 			}
 
@@ -174,16 +177,17 @@ func (m model) playerMove(move int, p tictactoe.Player) (int, tictactoe.Player) 
 		return m.cursor, winner
 	}
 
-	cursor, ok := m.moveRight()
-	if !ok {
-		cursor, ok = m.moveLeft()
+	cursor, rOk := m.moveRight()
+	if rOk {
+		return cursor, winner
 	}
 
-	if !ok {
-		cursor = -1
+	cursor, lOk := m.moveLeft()
+	if lOk {
+		return cursor, winner
 	}
 
-	return cursor, winner
+	return -1, winner
 }
 
 type botDoneMsg struct {
@@ -219,8 +223,9 @@ func (m model) botMove(ctx context.Context, sub chan botDoneMsg) tea.Cmd {
 }
 
 func (m model) moveRight() (int, bool) {
+	oCursor := m.cursor
+
 	if m.cursor >= 0 && m.cursor < len(m.board.Cells)-1 {
-		oCursor := m.cursor
 		m.cursor++
 		for {
 			if m.cursor > len(m.board.Cells)-1 {
@@ -235,12 +240,13 @@ func (m model) moveRight() (int, bool) {
 		}
 	}
 
-	return m.cursor, true
+	return m.cursor, m.cursor != oCursor
 }
 
 func (m model) moveLeft() (int, bool) {
+	oCursor := m.cursor
+
 	if m.cursor > 0 {
-		oCursor := m.cursor
 		m.cursor--
 		for {
 			if m.cursor < 0 {
@@ -255,10 +261,14 @@ func (m model) moveLeft() (int, bool) {
 		}
 	}
 
-	return m.cursor, true
+	return m.cursor, m.cursor != oCursor
 }
 
 func (m model) View() string {
+	if m.gameOver && m.Replay {
+		return ""
+	}
+
 	botTurn := m.bot != nil && m.currentPlayer == m.botPlayer && !m.gameOver
 
 	s := "Current player: "
@@ -303,7 +313,7 @@ func (m model) View() string {
 
 		s += "\nTHE WINNER IS: "
 		if m.winner == tictactoe.Empty {
-			s += "NO ONE"
+			s += cursorStyle("NO ONE\n")
 			return s
 		}
 
@@ -314,6 +324,7 @@ func (m model) View() string {
 			s += p2Style(m.winner.Mark())
 		}
 
+		s += "\n"
 		return s
 	}
 

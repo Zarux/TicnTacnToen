@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	bot := mcts.New(4, 100_000)
+	bot := mcts.New(4, 250_000)
 
 	gameService := game.New(bot)
 	gameService.Play()

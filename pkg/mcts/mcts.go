@@ -36,6 +36,10 @@ func (c *Client) UpdateThinkTime(t time.Duration) {
 	c.thinkTime = t
 }
 
+func (c *Client) UpdateIterations(iters int) {
+	c.iterations = iters
+}
+
 func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, player tictactoe.Player) int {
 	c.nextMoveCache = &sync.Map{}
 
@@ -112,6 +116,7 @@ mctsIteration:
 			if err != nil {
 				panic("SELECTION ILLEGAL MOVE")
 			}
+
 			current = -current
 		}
 
