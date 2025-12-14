@@ -1,0 +1,14 @@
+version: '3'
+
+dotenv: ['.env']
+
+tasks:
+  run:
+    cmds:
+      - go run ./cmd/server/
+  run:game:
+    cmds:
+      - go run ./cmd/game/
+  run:reload:
+    cmds:
+      - nodemon --exec go run ./cmd/server/main.go --signal SIGKILL
