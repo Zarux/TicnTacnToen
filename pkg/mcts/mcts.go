@@ -10,12 +10,23 @@ import (
 	"github.com/Zarux/ticntacntoen/pkg/tictactoe"
 )
 
+type LastMoveStats struct {
+	RealThinkTime   time.Duration
+	ActualThinkTime time.Duration
+	NumIterations   int
+	BestMove        int
+	MoveVisits      int
+	MoveWins        float64
+}
+
 type Client struct {
 	explorationParam float64
 	nextMoveCache    *sync.Map
 	threads          int
 	iterations       int
 	thinkTime        time.Duration
+
+	lastMoveStats *LastMoveStats
 }
 
 func New(threads, iterationsPerThread int) *Client {
@@ -40,18 +51,29 @@ func (c *Client) UpdateIterations(iters int) {
 	c.iterations = iters
 }
 
+func (c *Client) Stats() *LastMoveStats {
+	return c.lastMoveStats
+}
+
+type threadResult struct {
+	numIters  int
+	thinkTime time.Duration
+	visitMap  map[int]*node
+}
+
 func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, player tictactoe.Player) int {
 	c.nextMoveCache = &sync.Map{}
+	rootBoard.Turn = (rootBoard.N * rootBoard.N) - len(rootBoard.LegalMoves())
+	c.lastMoveStats = nil
 
 	if move, ok := rootBoard.ForcedMove(player); ok {
 		return move
 	}
 
-	rootBoard.Turn = (rootBoard.N * rootBoard.N) - len(rootBoard.LegalMoves())
-
-	results := make(chan map[int]int, c.threads)
+	results := make(chan threadResult, c.threads)
 	var wg sync.WaitGroup
 	wg.Add(c.threads)
+	realT := time.Now()
 	for range c.threads {
 		go func() {
 			defer wg.Done()
@@ -61,24 +83,40 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 				client:       c,
 			}
 
-			c.mctsIteration(ctx, c.iterations, root, rootBoard.Clone(), player)
+			t := time.Now()
+			numIters := c.mctsIteration(ctx, c.iterations, root, rootBoard.Clone(), player)
 
-			visitMap := make(map[int]int)
+			visitMap := make(map[int]*node)
 			for _, c := range root.Children {
-				visitMap[c.Move] = c.Visits
+				visitMap[c.Move] = c
 			}
 
-			results <- visitMap
+			results <- threadResult{
+				numIters:  numIters,
+				visitMap:  visitMap,
+				thinkTime: time.Since(t),
+			}
 		}()
 	}
 
 	wg.Wait()
 	close(results)
+	realThinkTime := time.Since(realT)
+	actualThinkTime := time.Duration(0)
+	totalIters := 0
 
+	nodes := map[int]*node{}
 	totalVisits := make(map[int]int)
 	for r := range results {
-		for move, visits := range r {
-			totalVisits[move] += visits
+		totalIters += r.numIters
+		actualThinkTime += r.thinkTime
+
+		for move, node := range r.visitMap {
+			totalVisits[move] += node.Visits
+			n, ok := nodes[move]
+			if !ok || node.Visits > n.Visits {
+				nodes[move] = node
+			}
 		}
 	}
 
@@ -91,12 +129,28 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 		}
 	}
 
+	bestNode, ok := nodes[bestMove]
+
+	if !ok {
+		bestNode = &node{}
+	}
+
+	c.lastMoveStats = &LastMoveStats{
+		RealThinkTime:   realThinkTime,
+		ActualThinkTime: actualThinkTime,
+		NumIterations:   totalIters,
+		BestMove:        bestMove,
+		MoveVisits:      bestNode.Visits,
+		MoveWins:        bestNode.Wins,
+	}
+
 	return bestMove
 }
 
-func (c *Client) mctsIteration(ctx context.Context, iterations int, root *node, board *tictactoe.Board, player tictactoe.Player) {
+func (c *Client) mctsIteration(ctx context.Context, iterations int, root *node, board *tictactoe.Board, player tictactoe.Player) int {
 	done := time.After(c.thinkTime)
 
+	iterationsDone := 0
 mctsIteration:
 	for range iterations {
 		select {
@@ -133,7 +187,11 @@ mctsIteration:
 
 		// Backprop
 		n.backpropagate(winner)
+
+		iterationsDone++
 	}
+
+	return iterationsDone
 }
 
 func (c *Client) rollout(board *tictactoe.Board, player tictactoe.Player) tictactoe.Player {

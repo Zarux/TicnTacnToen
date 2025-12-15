@@ -72,14 +72,17 @@ func (n *node) expand(board *tictactoe.Board, player tictactoe.Player) *node {
 	return child
 }
 
+const winValue = 1
+const drawValue = 0.6
+
 func (n *node) backpropagate(winner tictactoe.Player) {
 	for n != nil {
 		n.Visits++
 		switch winner {
 		case tictactoe.Empty:
-			n.Wins += 0.5
+			n.Wins += drawValue
 		case n.Player:
-			n.Wins += 1
+			n.Wins += winValue
 		}
 
 		n = n.Parent

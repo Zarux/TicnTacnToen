@@ -4,16 +4,19 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/Zarux/ticntacntoen/pkg/mcts"
 	"github.com/Zarux/ticntacntoen/pkg/tictactoe"
 )
 
 type botPlayer interface {
 	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) int
+	Stats() *mcts.LastMoveStats
 }
 
 type model struct {
@@ -322,6 +325,21 @@ func (m model) View() string {
 		if (i+1)%m.board.N == 0 {
 			s += "\n"
 		}
+	}
+
+	stats := m.bot.Stats()
+	if m.currentPlayer != m.botPlayer && stats != nil {
+		s += "\n"
+		m := m.board.GetMove(stats.BestMove)
+		s += fmt.Sprintf(
+			"Found move: (%d, %d)\nDid %d iterations and %s (Total: %s)\nMost visited node for move across threads: Visits: %d - Score: %f",
+			m.X+1, m.Y+1,
+			stats.NumIterations,
+			stats.RealThinkTime.Round(time.Millisecond),
+			stats.ActualThinkTime.Round(time.Millisecond),
+			stats.MoveVisits,
+			(stats.MoveWins / float64(stats.MoveVisits)),
+		)
 	}
 
 	if m.gameOver {

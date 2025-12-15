@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/Zarux/ticntacntoen/pkg/mcts"
 	"github.com/Zarux/ticntacntoen/pkg/tictactoe"
 	"github.com/Zarux/ticntacntoen/services/game/game"
 	"github.com/Zarux/ticntacntoen/services/game/settings"
@@ -16,6 +17,7 @@ import (
 
 type botPlayer interface {
 	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) int
+	Stats() *mcts.LastMoveStats
 	UpdateThinkTime(t time.Duration)
 }
 
