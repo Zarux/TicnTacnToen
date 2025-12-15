@@ -42,11 +42,16 @@ type model struct {
 
 	settings settings
 
+	done  bool
 	clear bool
 }
 
-func (m model) GetSettings() settings {
-	return m.settings
+func (m model) GetSettings() *settings {
+	if !m.done {
+		return nil
+	}
+
+	return &m.settings
 }
 
 func InitialModel(header string) *model {
@@ -117,6 +122,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.choiceLevel++
 			if m.choiceLevel > choiceLevelThink {
 				m.clear = true
+				m.done = true
 				return m, tea.Quit
 			}
 
@@ -178,7 +184,7 @@ func (m *model) View() string {
 		}
 	}
 
-	aroundCursor := 3
+	aroundCursor := 5
 
 	minItem := m.cursor - aroundCursor
 	maxItem := m.cursor + aroundCursor

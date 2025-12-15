@@ -37,6 +37,9 @@ func (s *Service) Play() {
 	}
 
 	settings := settingsModel.GetSettings()
+	if settings == nil {
+		return
+	}
 
 	s.bot.UpdateThinkTime(settings.ThinkTime)
 
@@ -57,18 +60,19 @@ func (s *Service) Play() {
 }
 
 var (
-	headerStyle1 = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#4204b5ff", Dark: "#4204b5ff"}).Render
-	headerStyle2 = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#19b504ff", Dark: "#19b504ff"}).Render
-	headerStyle3 = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#b55404ff", Dark: "#b55404ff"}).Render
+	headerStyle1 = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#4204b5ff", Dark: "#8a63d1ff"}).Render
+	headerStyle2 = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#108101ff", Dark: "#2eac1dff"}).Render
+	headerStyle3 = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#853d02ff", Dark: "#c0681fff"}).Render
+	headerStyle4 = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#5f5f5fff", Dark: "#ada8a8ff"}).Render
 )
 
 func header() string {
 	return fmt.Sprintf(
 		"%s %s %s %s %s\n\n",
-		headerStyle2("---"),
+		headerStyle4("---"),
 		headerStyle1("Ticᴺ"),
 		headerStyle2("Tacᴺ"),
 		headerStyle3("Toeᴺ"),
-		headerStyle2("---"),
+		headerStyle4("---"),
 	)
 }

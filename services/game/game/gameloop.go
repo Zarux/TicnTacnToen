@@ -40,11 +40,11 @@ func (m model) Init() tea.Cmd {
 }
 
 var (
-	p1Style              = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#007e50ff", Dark: "#007e50ff"}).Render
-	p2Style              = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0004ffff", Dark: "#0004ffff"}).Render
-	cursorStyle          = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ff0000ff", Dark: "#ff0000ff"}).Render
-	bracketStyle         = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#8f8f8fff", Dark: "#8f8f8fff"}).Render
-	lastMoveBracketStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ffffffff", Dark: "#ffffffff"}).Render
+	p1Style              = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#007e50ff", Dark: "#6afd76ff"}).Render
+	p2Style              = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0003adff", Dark: "#5f61fcff"}).Render
+	cursorStyle          = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#960000ff", Dark: "#fc7e7eff"}).Render
+	bracketStyle         = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#414141ff", Dark: "#8f8f8fff"}).Render
+	lastMoveBracketStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#00000000", Dark: "#ffffffff"}).Render
 )
 
 var colors = []func(strs ...string) string{
@@ -302,7 +302,7 @@ func (m model) View() string {
 		}
 
 		if botTurn && p == tictactoe.Empty {
-			mark = []string{"o", "x"}[rand.N(2)]
+			mark = []string{"o", "x", " "}[rand.N(3)]
 			mark = colors[rand.IntN(len(colors))](mark)
 		}
 
@@ -314,7 +314,7 @@ func (m model) View() string {
 		}
 
 		style := bracketStyle
-		if m.board.Turn > 0 && m.board.LastMove == i {
+		if m.board.Turn > 0 && m.board.LastMove == i && p != tictactoe.Empty {
 			style = lastMoveBracketStyle
 		}
 
