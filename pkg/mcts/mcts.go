@@ -2,6 +2,7 @@ package mcts
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"math/rand/v2"
 	"sync"
@@ -62,11 +63,28 @@ type threadResult struct {
 	visitMap  map[int]*node
 }
 
-func (c *Client) getNewRoot(b *tictactoe.Board) *node {
-	newRoot := &node{
-		UntriedMoves: b.LegalMoves(),
-		client:       c,
+func (c *Client) getNewRoot(b *tictactoe.Board) (newRoot *node) {
+	newRoot = &node{
+		client: c,
 	}
+
+	defer func() {
+		newRoot.Parent = nil
+		var untriedMoves []int
+		legalMoves := b.LegalMoves()
+	legalMoveLoop:
+		for _, move := range legalMoves {
+			for _, child := range newRoot.Children {
+				if child.Move == move {
+					continue legalMoveLoop
+				}
+			}
+
+			untriedMoves = append(untriedMoves, move)
+		}
+
+		newRoot.UntriedMoves = untriedMoves
+	}()
 
 	if c.lastNode == nil {
 		return newRoot
@@ -183,7 +201,7 @@ func (c *Client) mctsIteration(ctx context.Context, iterations int, root *node, 
 
 	iterationsDone := 0
 mctsIteration:
-	for range iterations {
+	for i := range iterations {
 		select {
 		case <-ctx.Done():
 			break mctsIteration
@@ -201,7 +219,9 @@ mctsIteration:
 			n = n.selectChild()
 			err := board.ApplyMove(n.Move, current)
 			if err != nil {
-				panic("Illegal move during selection")
+				fmt.Printf("n %#v\n", n)
+				fmt.Printf("n.p %#v\n", n.Parent)
+				panic(fmt.Errorf("illegal move during selection: iteration %d, move %d, err %w", i, n.Move, err))
 			}
 
 			current = -current

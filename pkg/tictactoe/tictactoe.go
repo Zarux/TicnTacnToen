@@ -92,7 +92,7 @@ func (b *Board) Play(p Player, m Move) {
 
 func (b *Board) ApplyMove(idx int, p Player) error {
 	if b.Cells[idx] != Empty {
-		return errIllegalMove
+		return fmt.Errorf("%d is at %d: %w", b.Cells[idx], idx, errIllegalMove)
 	}
 
 	b.Cells[idx] = p
@@ -130,11 +130,12 @@ func (b *Board) AnyLegalMoves() bool {
 }
 
 func (b *Board) LegalMoves() []int {
-	emptyCells := make([]int, 0, len(b.Cells))
+	emptyCells := make([]int, 0, (b.N * b.N))
 	for m, p := range b.Cells {
 		if p != Empty {
 			continue
 		}
+
 		emptyCells = append(emptyCells, m)
 	}
 
