@@ -32,9 +32,10 @@ func (s *Service) NewGame(ctx context.Context) error {
 }
 
 func (s *Service) Play(ctx context.Context) error {
-	bot := mcts.New(4, 100_000)
+	bot := mcts.New(1, 250_000)
+	bot.UpdateThinkTime(5 * time.Second)
 
-	game, err := tictactoe.New(3, 3)
+	game, err := tictactoe.New(5, 4)
 	if err != nil {
 		return err
 	}
@@ -42,9 +43,21 @@ func (s *Service) Play(ctx context.Context) error {
 	board := game.Board
 	board.ApplyMove(6, tictactoe.P1)
 	board.Print()
-	board.ApplyMove(2, tictactoe.P2)
+	nextMove := bot.GetNextMove(context.Background(), board, tictactoe.P2)
+	board.ApplyMove(nextMove, tictactoe.P2)
 	board.Print()
+	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P2)
+	board.ApplyMove(nextMove, tictactoe.P2)
+	board.Print()
+	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P1)
+	board.ApplyMove(nextMove, tictactoe.P1)
+	board.Print()
+	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P2)
+	board.ApplyMove(nextMove, tictactoe.P2)
+	board.Print()
+
 	turnNumber := 0
+	return nil
 	player := tictactoe.P1
 	for {
 		ctx, cancel := context.WithTimeout(ctx, 1*time.Second)

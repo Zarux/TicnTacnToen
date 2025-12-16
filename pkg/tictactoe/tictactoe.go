@@ -54,12 +54,13 @@ type Move struct {
 }
 
 type Board struct {
-	N        int
-	K        int
-	Cells    []Player
-	LastMove int
-	Hash     uint64
-	Turn     int
+	N            int
+	K            int
+	Cells        []Player
+	LastMove     int
+	LastMoveUndo int
+	Hash         uint64
+	Turn         int
 
 	xList      []int
 	yList      []int
@@ -96,6 +97,7 @@ func (b *Board) ApplyMove(idx int, p Player) error {
 
 	b.Cells[idx] = p
 
+	b.LastMoveUndo = b.LastMove
 	b.LastMove = idx
 	b.Hash ^= b.game.ZobristKeys[idx][p.Idx()]
 
@@ -106,15 +108,21 @@ func (b *Board) ApplyMove(idx int, p Player) error {
 	return nil
 }
 
-func (b *Board) UndoMove(idx int) {
+func (b *Board) UndoMove(idx int) error {
 	if b.Cells[idx] == Empty {
-		panic("UndoMove on empty cell")
+		return errIllegalMove
 	}
+
+	b.LastMove = b.LastMoveUndo
 
 	p := b.Cells[idx]
 	b.Cells[idx] = Empty
+
 	b.emptyCells = append(b.emptyCells, idx)
+
 	b.Hash ^= b.game.ZobristKeys[idx][p.Idx()]
+
+	return nil
 }
 
 func (b *Board) AnyLegalMoves() bool {
@@ -206,7 +214,7 @@ func (b *Board) checkFrom(idx int) Player {
 	return Empty
 }
 
-func (b *Board) DoesPlacingAnyStoneHereEndTheGame(idx int) bool {
+func (b *Board) TacticalStone(idx int) bool {
 	x := idx % b.N
 	y := idx / b.N
 
@@ -379,7 +387,7 @@ func (b *Board) biasedRandomMoves() []int {
 		timeSpentNeighbour += time.Since(t)
 
 		t = time.Now()
-		if b.DoesPlacingAnyStoneHereEndTheGame(m) {
+		if b.TacticalStone(m) {
 			tactical = append(tactical, m)
 		}
 		timeSpent2xWinner += time.Since(t)

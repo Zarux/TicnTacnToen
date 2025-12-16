@@ -88,3 +88,7 @@ func (n *node) backpropagate(winner tictactoe.Player) {
 		n = n.Parent
 	}
 }
+
+func (n *node) deepCopy() *node {
+	return nil
+}
