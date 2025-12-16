@@ -143,6 +143,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 
+			if m.bot != nil && m.currentPlayer == m.botPlayer {
+				return m, nil
+			}
+
 			newCursor, winner := m.playerMove(m.cursor, m.currentPlayer)
 			if !m.board.AnyLegalMoves() && winner == tictactoe.Empty {
 				m.gameOver = true
@@ -332,7 +336,7 @@ func (m model) View() string {
 		s += "\n"
 		m := m.board.GetMove(stats.BestMove)
 		s += fmt.Sprintf(
-			"Found move: (%d, %d)\nDid %d iterations and %s (Total: %s)\nMost visited node for move across threads: Visits: %d - Score: %f",
+			"Found move: (%d, %d)\nDid %d iterations and %s (Total: %s)\nMost visited node for move across workers: Visits: %d - Score: %f",
 			m.X+1, m.Y+1,
 			stats.NumIterations,
 			stats.RealThinkTime.Round(time.Millisecond),

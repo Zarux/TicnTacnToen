@@ -35,7 +35,7 @@ func (s *Service) Play(ctx context.Context) error {
 	bot := mcts.New(1, 250_000)
 	bot.UpdateThinkTime(5 * time.Second)
 
-	game, err := tictactoe.New(5, 4)
+	game, err := tictactoe.New(10, 4)
 	if err != nil {
 		return err
 	}
@@ -46,14 +46,18 @@ func (s *Service) Play(ctx context.Context) error {
 	nextMove := bot.GetNextMove(context.Background(), board, tictactoe.P2)
 	board.ApplyMove(nextMove, tictactoe.P2)
 	board.Print()
+	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P1)
+	board.ApplyMove(nextMove, tictactoe.P1)
+	board.Print()
+	board.ApplyMove(1, tictactoe.P2)
+	board.Print()
+	board.ApplyMove(99, tictactoe.P1)
+	board.Print()
 	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P2)
 	board.ApplyMove(nextMove, tictactoe.P2)
 	board.Print()
 	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P1)
 	board.ApplyMove(nextMove, tictactoe.P1)
-	board.Print()
-	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P2)
-	board.ApplyMove(nextMove, tictactoe.P2)
 	board.Print()
 
 	turnNumber := 0

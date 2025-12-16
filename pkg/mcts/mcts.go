@@ -23,7 +23,7 @@ type LastMoveStats struct {
 type Client struct {
 	explorationParam float64
 	nextMoveCache    *sync.Map
-	threads          int
+	workers          int
 	iterations       int
 	thinkTime        time.Duration
 	lastNode         *node
@@ -31,11 +31,11 @@ type Client struct {
 	lastMoveStats *LastMoveStats
 }
 
-func New(threads, iterationsPerThread int) *Client {
+func New(workers, iterationsPerThread int) *Client {
 	return &Client{
 		explorationParam: 1.414,
 		nextMoveCache:    &sync.Map{},
-		threads:          threads,
+		workers:          workers,
 		iterations:       iterationsPerThread,
 		thinkTime:        time.Second,
 	}
@@ -115,18 +115,18 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 		return move
 	}
 
-	results := make(chan threadResult, c.threads)
+	results := make(chan threadResult, c.workers)
 
 	var wg sync.WaitGroup
-	wg.Add(c.threads)
+	wg.Add(c.workers)
 
 	t := time.Now()
-	for range c.threads {
+	for range c.workers {
 		go func() {
 			defer wg.Done()
 
 			root := c.getNewRoot(rootBoard)
-			if c.threads > 1 {
+			if c.workers > 1 {
 				root = root.deepCopy()
 			}
 

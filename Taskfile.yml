@@ -8,7 +8,7 @@ tasks:
       - go run ./cmd/server/
   run:game:
     cmds:
-      - go run ./cmd/game/
+      - go run ./cmd/game/ {{.CLI_ARGS}}
   run:reload:
     cmds:
       - nodemon --exec go run ./cmd/server/main.go --signal SIGKILL
