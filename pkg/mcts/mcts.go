@@ -51,10 +51,6 @@ func (c *Client) UpdateThinkTime(t time.Duration) {
 	c.thinkTime = t
 }
 
-func (c *Client) UpdateIterations(iters int) {
-	c.iterations = iters
-}
-
 func (c *Client) Stats() *LastMoveStats {
 	return c.lastMoveStats
 }
@@ -286,7 +282,6 @@ func (c *Client) rollout(board *tictactoe.Board, player tictactoe.Player) tictac
 			return tictactoe.Empty
 		}
 
-		//move := board.BiasedRandomMoveCache(c.nextMoveCache)
 		move := board.BiasedRandomMove()
 		err := board.ApplyMove(move, current)
 		if err != nil {
@@ -295,18 +290,6 @@ func (c *Client) rollout(board *tictactoe.Board, player tictactoe.Player) tictac
 
 		current = -current
 	}
-}
-
-func Iterations(N, K, t int) int {
-	base := N * K * 1000
-	alpha := 1.0
-	remaining := float64(N*N - t)
-	if remaining < 1 {
-		remaining = 1
-	}
-
-	iters := float64(base) * (1 + alpha*(float64(N*N)/remaining)) * float64(K) / 3.0
-	return int(iters)
 }
 
 func explorationParameter(N, K, turn int) float64 {

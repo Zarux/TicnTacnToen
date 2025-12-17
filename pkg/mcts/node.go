@@ -57,7 +57,22 @@ func (n *node) selectChild() *node {
 }
 
 func (n *node) expand(board *tictactoe.Board, player tictactoe.Player) *node {
-	move := n.UntriedMoves[rand.N(len(n.UntriedMoves))]
+	rand.Shuffle(len(n.UntriedMoves), func(i, j int) {
+		n.UntriedMoves[i], n.UntriedMoves[j] = n.UntriedMoves[j], n.UntriedMoves[i]
+	})
+
+	move := -1
+	for _, untriedMove := range n.UntriedMoves {
+		if board.TacticalStone(untriedMove) {
+			move = untriedMove
+			break
+		}
+	}
+
+	if move == -1 {
+		move = n.UntriedMoves[0]
+	}
+
 	n.UntriedMoves = slices.DeleteFunc(n.UntriedMoves, func(cmp int) bool {
 		return cmp == move
 	})

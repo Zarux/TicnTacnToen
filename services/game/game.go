@@ -3,7 +3,6 @@ package game
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -33,13 +32,6 @@ func New(bot botPlayer) *Service {
 }
 
 func (s *Service) Play() {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("panic recovered:", r)
-			os.Exit(1)
-		}
-	}()
-
 	settingsModel := settings.InitialModel(header())
 	p := tea.NewProgram(settingsModel, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

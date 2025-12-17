@@ -7,8 +7,6 @@ import (
 	"math"
 	"math/rand/v2"
 	"slices"
-	"sync"
-	"time"
 
 	"github.com/Zarux/ticntacntoen/pkg/zobrist"
 )
@@ -335,44 +333,11 @@ func (b *Board) TacticalMoves(player Player) ([]int, bool) {
 	return nil, false
 }
 
-var timeSpentNeighbour time.Duration
-var timeSpent2xWinner time.Duration
-
-var cachehit int
-var cachemiss int
-
-func (b *Board) BiasedRandomMoveCache(cache *sync.Map) int {
-	if v, ok := cache.Load(b.Hash); ok {
-		cachehit++
-		moves := v.([]int)
-		return moves[rand.N(len(moves))]
-	}
-	cachemiss++
-
-	moves := b.biasedRandomMoves()
-	cache.Store(b.Hash, moves)
-	return moves[rand.N(len(moves))]
-
-}
-
 func (b *Board) BiasedRandomMove() int {
-	moves := b.biasedRandomMoves()
-	return moves[rand.N(len(moves))]
-}
-
-func (b *Board) biasedRandomMoves() []int {
 	var near []int
-	var tactical []int
 	var empty []int
 
 	r := 2
-	switch {
-	case b.Turn < 2:
-		r = 0
-	case b.Turn < 4:
-		r = 1
-	}
-
 	for m, p := range b.Cells {
 		if p != Empty {
 			continue
@@ -380,31 +345,17 @@ func (b *Board) biasedRandomMoves() []int {
 
 		empty = append(empty, m)
 
-		t := time.Now()
 		if r > 0 && b.hasNeighbor(m, r) {
 			near = append(near, m)
 		}
-
-		timeSpentNeighbour += time.Since(t)
-
-		t = time.Now()
-		if b.TacticalStone(m) {
-			tactical = append(tactical, m)
-		}
-		timeSpent2xWinner += time.Since(t)
-
-	}
-
-	if len(tactical) > 0 {
-		return tactical
 	}
 
 	eps := math.Max(0.05, 0.3*math.Exp(-0.1*float64(b.Turn)))
 	if len(near) > 0 && rand.Float64() < eps {
-		return near
+		return near[rand.N(len(near))]
 	}
 
-	return empty
+	return empty[rand.N(len(empty))]
 }
 
 func (b *Board) Print() {
@@ -416,13 +367,20 @@ func (b *Board) Print() {
 		}
 	}
 
-	fmt.Println(timeSpentNeighbour)
-	fmt.Println(timeSpent2xWinner)
-	fmt.Println(timeSpentNeighbour+timeSpent2xWinner, cachehit, cachemiss)
-	timeSpent2xWinner = 0
-	timeSpentNeighbour = 0
-
 	fmt.Println("--------")
+}
+
+func (b *Board) RecomputeHash() uint64 {
+	var h uint64
+	for i, p := range b.Cells {
+		if p != Empty {
+			continue
+		}
+
+		h ^= b.game.ZobristKeys[i][p.Idx()]
+	}
+
+	return h
 }
 
 type Game struct {
