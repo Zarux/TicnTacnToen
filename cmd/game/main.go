@@ -9,7 +9,7 @@ import (
 
 var (
 	iterFlag = flag.Int("i", 250_000, "max iterations to run (default: 250_000)")
-	concFlag = flag.Int("conc", 1, "concurrency (default: 1)")
+	concFlag = flag.Int("workers", 2, "concurrent workers (default: 2)")
 )
 
 func main() {

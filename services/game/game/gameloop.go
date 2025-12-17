@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"strconv"
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -17,6 +18,7 @@ import (
 type botPlayer interface {
 	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) int
 	Stats() *mcts.LastMoveStats
+	UpdateExplorationParam(ep float64)
 }
 
 type model struct {
@@ -47,10 +49,12 @@ var (
 	p2Style              = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0003adff", Dark: "#5f61fcff"}).Render
 	cursorStyle          = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#960000ff", Dark: "#fc7e7eff"}).Render
 	bracketStyle         = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#414141ff", Dark: "#8f8f8fff"}).Render
-	lastMoveBracketStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#00000000", Dark: "#ffffffff"}).Render
+	lastMoveBracketStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#000000ff", Dark: "#ffffffff"}).Render
+	statStyle1           = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#8a880fff", Dark: "#ddda1dff"}).Render
+	statStyle2           = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#138a0fff", Dark: "#1ddd37ff"}).Render
 )
 
-var colors = []func(strs ...string) string{
+var thinkingColors = []func(strs ...string) string{
 	bracketStyle,
 	lastMoveBracketStyle,
 }
@@ -226,6 +230,7 @@ func (m model) beginTick() tea.Cmd {
 func (m model) botMove(ctx context.Context, sub chan botDoneMsg) tea.Cmd {
 	return func() tea.Msg {
 		nextMove := m.bot.GetNextMove(ctx, m.board, m.botPlayer)
+
 		cursor, winner := m.playerMove(nextMove, m.botPlayer)
 		sub <- botDoneMsg{
 			cursor: cursor,
@@ -310,22 +315,25 @@ func (m model) View() string {
 
 		if botTurn && p == tictactoe.Empty {
 			mark = []string{"o", "x", " "}[rand.N(3)]
-			mark = colors[rand.IntN(len(colors))](mark)
+			mark = thinkingColors[rand.IntN(len(thinkingColors))](mark)
 		}
+
+		bStyle := bracketStyle
 
 		switch p {
 		case tictactoe.P1:
 			mark = p1Style(p.Mark())
+			//bStyle = p1Style
 		case tictactoe.P2:
 			mark = p2Style(p.Mark())
+			//bStyle = p2Style
 		}
 
-		style := bracketStyle
 		if m.board.Turn > 0 && m.board.LastMove == i && p != tictactoe.Empty {
-			style = lastMoveBracketStyle
+			bStyle = lastMoveBracketStyle
 		}
 
-		s += fmt.Sprintf("%s%s%s", style("["), mark, style("]"))
+		s += fmt.Sprintf("%s%s%s", bStyle("["), mark, bStyle("]"))
 		if (i+1)%m.board.N == 0 {
 			s += "\n"
 		}
@@ -336,14 +344,22 @@ func (m model) View() string {
 		s += "\n"
 		m := m.board.GetMove(stats.BestMove)
 		s += fmt.Sprintf(
-			"Found move: (%d, %d)\nDid %d iterations and %s (Total: %s)\nMost visited node for move across workers: Visits: %d - Score: %f",
-			m.X+1, m.Y+1,
-			stats.NumIterations,
-			stats.RealThinkTime.Round(time.Millisecond),
-			stats.ActualThinkTime.Round(time.Millisecond),
-			stats.MoveVisits,
-			(stats.MoveWins / float64(stats.MoveVisits)),
+			"Found move: %s\nDid %s iterations over %s (Total: %s)\nMost visited node for move across workers: Visits: %s - Score: %s\n",
+			statStyle1(fmt.Sprintf("(%d, %d)", m.X+1, m.Y+1)),
+			statStyle2(strconv.Itoa(stats.NumIterations)),
+			statStyle2(stats.RealThinkTime.Round(time.Millisecond).String()),
+			statStyle2(stats.ActualThinkTime.Round(time.Millisecond).String()),
+			statStyle1(strconv.Itoa(stats.MoveVisits)),
+			statStyle1(fmt.Sprintf("%f", stats.MoveWins/float64(stats.MoveVisits))),
 		)
+
+		if stats.TacticalOverride {
+			if stats.NumIterations == 0 {
+				s += statStyle1("FAST ")
+			}
+
+			s += cursorStyle("TACTICAL OVERRIDE\n")
+		}
 	}
 
 	if m.gameOver {

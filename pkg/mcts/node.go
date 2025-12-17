@@ -2,6 +2,8 @@ package mcts
 
 import (
 	"math"
+	"math/rand/v2"
+	"slices"
 
 	"github.com/Zarux/ticntacntoen/pkg/tictactoe"
 )
@@ -55,8 +57,10 @@ func (n *node) selectChild() *node {
 }
 
 func (n *node) expand(board *tictactoe.Board, player tictactoe.Player) *node {
-	move := n.UntriedMoves[len(n.UntriedMoves)-1]
-	n.UntriedMoves = n.UntriedMoves[:len(n.UntriedMoves)-1]
+	move := n.UntriedMoves[rand.N(len(n.UntriedMoves))]
+	n.UntriedMoves = slices.DeleteFunc(n.UntriedMoves, func(cmp int) bool {
+		return cmp == move
+	})
 
 	board.Cells[move] = player
 
@@ -90,5 +94,25 @@ func (n *node) backpropagate(winner tictactoe.Player) {
 }
 
 func (n *node) deepCopy() *node {
-	return nil
+	newNode := &node{
+		Move:   n.Move,
+		Player: n.Player,
+		Wins:   n.Wins,
+		client: n.client,
+	}
+
+	if len(n.UntriedMoves) > 0 {
+		newNode.UntriedMoves = make([]int, len(n.UntriedMoves))
+		copy(newNode.UntriedMoves, n.UntriedMoves)
+	}
+
+	if len(n.Children) > 0 {
+		newNode.Children = make([]*node, len(n.Children))
+		for i, child := range n.Children {
+			newNode.Children[i] = child.deepCopy()
+			newNode.Children[i].Parent = newNode
+		}
+	}
+
+	return newNode
 }

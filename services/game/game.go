@@ -19,6 +19,7 @@ type botPlayer interface {
 	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) int
 	Stats() *mcts.LastMoveStats
 	UpdateThinkTime(t time.Duration)
+	UpdateExplorationParam(ep float64)
 }
 
 type Service struct {
@@ -32,10 +33,17 @@ func New(bot botPlayer) *Service {
 }
 
 func (s *Service) Play() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("panic recovered:", r)
+			os.Exit(1)
+		}
+	}()
+
 	settingsModel := settings.InitialModel(header())
 	p := tea.NewProgram(settingsModel, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
-		os.Exit(1)
+		panic(err)
 	}
 
 	settings := settingsModel.GetSettings()
@@ -49,10 +57,9 @@ func (s *Service) Play() {
 		g, _ := tictactoe.New(settings.N, settings.K)
 		gameModel := game.InitialModel(header(), g.Board, s.bot, settings.P)
 
-		p = tea.NewProgram(gameModel, tea.WithAltScreen())
+		p = tea.NewProgram(gameModel, tea.WithAltScreen(), tea.WithoutCatchPanics())
 		if _, err := p.Run(); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			panic(err)
 		}
 
 		if !gameModel.Replay {

@@ -32,10 +32,10 @@ func (s *Service) NewGame(ctx context.Context) error {
 }
 
 func (s *Service) Play(ctx context.Context) error {
-	bot := mcts.New(1, 250_000)
-	bot.UpdateThinkTime(5 * time.Second)
+	bot := mcts.New(1, 1_000)
+	bot.UpdateThinkTime(1 * time.Second)
 
-	game, err := tictactoe.New(10, 4)
+	game, err := tictactoe.New(3, 3)
 	if err != nil {
 		return err
 	}
@@ -43,21 +43,23 @@ func (s *Service) Play(ctx context.Context) error {
 	board := game.Board
 	board.ApplyMove(6, tictactoe.P1)
 	board.Print()
+
 	nextMove := bot.GetNextMove(context.Background(), board, tictactoe.P2)
 	board.ApplyMove(nextMove, tictactoe.P2)
 	board.Print()
-	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P1)
-	board.ApplyMove(nextMove, tictactoe.P1)
+
+	board.ApplyMove(8, tictactoe.P1)
 	board.Print()
-	board.ApplyMove(1, tictactoe.P2)
-	board.Print()
-	board.ApplyMove(99, tictactoe.P1)
-	board.Print()
+
 	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P2)
 	board.ApplyMove(nextMove, tictactoe.P2)
 	board.Print()
-	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P1)
-	board.ApplyMove(nextMove, tictactoe.P1)
+
+	board.ApplyMove(1, tictactoe.P1)
+	board.Print()
+
+	nextMove = bot.GetNextMove(context.Background(), board, tictactoe.P2)
+	board.ApplyMove(nextMove, tictactoe.P2)
 	board.Print()
 
 	turnNumber := 0
@@ -68,15 +70,11 @@ func (s *Service) Play(ctx context.Context) error {
 		defer cancel()
 
 		t := time.Now()
-		iterations := mcts.Iterations(board.N, board.K, turnNumber)
-		exploration := mcts.ExplorationParameter(board.N, board.K, turnNumber)
-
-		bot.UpdateExploationParam(exploration)
 
 		nextMove := s.bot.GetNextMove(ctx, board, player)
 		move := board.GetMove(nextMove)
 		board.Play(player, move)
-		fmt.Println("Current player:", player.Mark(), "move:", move, "thinking for:", time.Since(t), "iterations", iterations, "c", exploration)
+		fmt.Println("Current player:", player.Mark(), "move:", move, "thinking for:", time.Since(t), "iterations", bot.Stats().NumIterations)
 		board.Print()
 
 		winner := board.CheckWinner()

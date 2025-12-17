@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"slices"
 	"sync"
 	"time"
 
@@ -12,12 +13,13 @@ import (
 )
 
 type LastMoveStats struct {
-	RealThinkTime   time.Duration
-	ActualThinkTime time.Duration
-	NumIterations   int
-	BestMove        int
-	MoveVisits      int
-	MoveWins        float64
+	RealThinkTime    time.Duration
+	ActualThinkTime  time.Duration
+	NumIterations    int
+	BestMove         int
+	MoveVisits       int
+	MoveWins         float64
+	TacticalOverride bool
 }
 
 type Client struct {
@@ -41,7 +43,7 @@ func New(workers, iterationsPerThread int) *Client {
 	}
 }
 
-func (c *Client) UpdateExploationParam(ep float64) {
+func (c *Client) UpdateExplorationParam(ep float64) {
 	c.explorationParam = ep
 }
 
@@ -110,8 +112,29 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 	c.lastMoveStats = nil
 
 	rootBoard.Turn = (rootBoard.N * rootBoard.N) - len(rootBoard.LegalMoves())
+	c.UpdateExplorationParam(explorationParameter(rootBoard.N, rootBoard.K, rootBoard.Turn))
 
-	if move, ok := rootBoard.ForcedMove(player); ok {
+	root := c.getNewRoot(rootBoard)
+
+	tacticalMoves, win := rootBoard.TacticalMoves(player)
+	if len(tacticalMoves) == 1 {
+		move := tacticalMoves[0]
+		if win {
+			return move
+		}
+
+		for _, child := range root.Children {
+			if child.Move == move {
+				c.lastNode = child
+				break
+			}
+		}
+
+		c.lastMoveStats = &LastMoveStats{
+			BestMove:         move,
+			TacticalOverride: true,
+		}
+
 		return move
 	}
 
@@ -120,16 +143,17 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 	var wg sync.WaitGroup
 	wg.Add(c.workers)
 
+	workerRoots := make([]*node, c.workers)
+	for i := range workerRoots {
+		workerRoots[i] = root.deepCopy()
+	}
+
 	t := time.Now()
-	for range c.workers {
+	for i := range c.workers {
 		go func() {
 			defer wg.Done()
 
-			root := c.getNewRoot(rootBoard)
-			if c.workers > 1 {
-				root = root.deepCopy()
-			}
-
+			root := workerRoots[i]
 			thinkStart := time.Now()
 			numIters := c.mctsIteration(ctx, c.iterations, root, rootBoard.Clone(), player)
 
@@ -177,6 +201,12 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 		}
 	}
 
+	tacticalOverride := false
+	if len(tacticalMoves) > 0 && !slices.Contains(tacticalMoves, bestMove) {
+		tacticalOverride = true
+		bestMove = tacticalMoves[rand.IntN(len(tacticalMoves))]
+	}
+
 	bestNode, ok := nodes[bestMove]
 	if ok {
 		c.lastNode = bestNode
@@ -185,12 +215,13 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 	}
 
 	c.lastMoveStats = &LastMoveStats{
-		RealThinkTime:   realThinkTime,
-		ActualThinkTime: actualThinkTime,
-		NumIterations:   totalIters,
-		BestMove:        bestMove,
-		MoveVisits:      bestNode.Visits,
-		MoveWins:        bestNode.Wins,
+		RealThinkTime:    realThinkTime,
+		ActualThinkTime:  actualThinkTime,
+		NumIterations:    totalIters,
+		BestMove:         bestMove,
+		MoveVisits:       bestNode.Visits,
+		MoveWins:         bestNode.Wins,
+		TacticalOverride: tacticalOverride,
 	}
 
 	return bestMove
@@ -219,8 +250,6 @@ mctsIteration:
 			n = n.selectChild()
 			err := board.ApplyMove(n.Move, current)
 			if err != nil {
-				fmt.Printf("n %#v\n", n)
-				fmt.Printf("n.p %#v\n", n.Parent)
 				panic(fmt.Errorf("illegal move during selection: iteration %d, move %d, err %w", i, n.Move, err))
 			}
 
@@ -228,7 +257,7 @@ mctsIteration:
 		}
 
 		// Expansion
-		if len(n.UntriedMoves) > 0 && n.canExpand() {
+		if n.canExpand() {
 			n = n.expand(board, current)
 			current = -current
 		}
@@ -263,6 +292,7 @@ func (c *Client) rollout(board *tictactoe.Board, player tictactoe.Player) tictac
 		if err != nil {
 			panic("Illegal move during rollout")
 		}
+
 		current = -current
 	}
 }
@@ -279,42 +309,9 @@ func Iterations(N, K, t int) int {
 	return int(iters)
 }
 
-func ExplorationParameter(N, K, turn int) float64 {
+func explorationParameter(N, K, turn int) float64 {
 	base := 1.414
 	factor := math.Sqrt(float64(K) / float64(N))
-	remaining := float64(N*N - turn)
-	if remaining <= 0 {
-		remaining = 1
-	}
-
-	turnFactor := math.Min(1.0, float64(N*N)/remaining)
+	turnFactor := float64(N*N-turn) / float64(N*N)
 	return base * factor * turnFactor
-}
-
-func (c *Client) getNextMove(ctx context.Context, rootBoard *tictactoe.Board, player tictactoe.Player) int {
-	c.nextMoveCache = &sync.Map{}
-
-	if move, ok := rootBoard.ForcedMove(player); ok {
-		return move
-	}
-
-	root := &node{
-		UntriedMoves: rootBoard.LegalMoves(),
-		client:       c,
-	}
-
-	c.mctsIteration(ctx, c.iterations, root, rootBoard.Clone(), player)
-
-	rand.Shuffle(len(root.Children), func(i, j int) {
-		root.Children[i], root.Children[j] = root.Children[j], root.Children[i]
-	})
-
-	best := root.Children[0]
-	for _, c := range root.Children[1:] {
-		if c.Visits > best.Visits {
-			best = c
-		}
-	}
-
-	return best.Move
 }

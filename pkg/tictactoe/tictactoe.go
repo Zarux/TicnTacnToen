@@ -305,7 +305,7 @@ func (b *Board) hasNeighbor(idx int, r int) bool {
 	return false
 }
 
-func (b *Board) ForcedMove(player Player) (int, bool) {
+func (b *Board) TacticalMoves(player Player) ([]int, bool) {
 	blockingMoves := []int{}
 
 	for i, c := range b.Cells {
@@ -317,7 +317,7 @@ func (b *Board) ForcedMove(player Player) (int, bool) {
 		isWin := b.CheckWinner() == player
 		b.UndoMove(i)
 		if isWin {
-			return i, true
+			return []int{i}, true
 		}
 
 		b.ApplyMove(i, -player)
@@ -329,10 +329,10 @@ func (b *Board) ForcedMove(player Player) (int, bool) {
 	}
 
 	if len(blockingMoves) > 0 {
-		return blockingMoves[rand.N(len(blockingMoves))], true
+		return blockingMoves, false
 	}
 
-	return -1, false
+	return nil, false
 }
 
 var timeSpentNeighbour time.Duration
