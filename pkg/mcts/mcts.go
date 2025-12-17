@@ -24,7 +24,6 @@ type LastMoveStats struct {
 
 type Client struct {
 	explorationParam float64
-	nextMoveCache    *sync.Map
 	workers          int
 	iterations       int
 	thinkTime        time.Duration
@@ -36,7 +35,6 @@ type Client struct {
 func New(workers, iterationsPerThread int) *Client {
 	return &Client{
 		explorationParam: 1.414,
-		nextMoveCache:    &sync.Map{},
 		workers:          workers,
 		iterations:       iterationsPerThread,
 		thinkTime:        time.Second,
@@ -104,7 +102,6 @@ func (c *Client) getNewRoot(b *tictactoe.Board) (newRoot *node) {
 }
 
 func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, player tictactoe.Player) int {
-	c.nextMoveCache = &sync.Map{}
 	c.lastMoveStats = nil
 
 	rootBoard.Turn = (rootBoard.N * rootBoard.N) - len(rootBoard.LegalMoves())
@@ -282,7 +279,9 @@ func (c *Client) rollout(board *tictactoe.Board, player tictactoe.Player) tictac
 			return tictactoe.Empty
 		}
 
-		move := board.BiasedRandomMove()
+		moves := board.LegalMoves()
+		move := moves[rand.N(len(moves))]
+
 		err := board.ApplyMove(move, current)
 		if err != nil {
 			panic("Illegal move during rollout")

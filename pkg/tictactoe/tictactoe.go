@@ -273,7 +273,7 @@ func (b *Board) checkOneColorFromSide(x, y, dx, dy int) bool {
 	return count >= b.K
 }
 
-func (b *Board) hasNeighbor(idx int, r int) bool {
+func (b *Board) HasNeighbor(idx int, r int) bool {
 	x := b.xList[idx]
 	y := b.yList[idx]
 
@@ -345,7 +345,7 @@ func (b *Board) BiasedRandomMove() int {
 
 		empty = append(empty, m)
 
-		if r > 0 && b.hasNeighbor(m, r) {
+		if r > 0 && b.HasNeighbor(m, r) {
 			near = append(near, m)
 		}
 	}

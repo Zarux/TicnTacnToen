@@ -32,10 +32,10 @@ func (s *Service) NewGame(ctx context.Context) error {
 }
 
 func (s *Service) Play(ctx context.Context) error {
-	bot := mcts.New(3, 1_000_000)
-	bot.UpdateThinkTime(3 * time.Second)
+	bot := mcts.New(2, 1_000_000)
+	bot.UpdateThinkTime(5 * time.Second)
 
-	game, err := tictactoe.New(10, 5)
+	game, err := tictactoe.New(7, 4)
 	if err != nil {
 		return err
 	}

@@ -61,12 +61,28 @@ func (n *node) expand(board *tictactoe.Board, player tictactoe.Player) *node {
 		n.UntriedMoves[i], n.UntriedMoves[j] = n.UntriedMoves[j], n.UntriedMoves[i]
 	})
 
+	var tacticalMoves []int
+	var nearbyMoves []int
+
 	move := -1
 	for _, untriedMove := range n.UntriedMoves {
 		if board.TacticalStone(untriedMove) {
-			move = untriedMove
-			break
+			tacticalMoves = append(tacticalMoves, untriedMove)
+			continue
 		}
+
+		if board.HasNeighbor(untriedMove, 2) {
+			nearbyMoves = append(nearbyMoves, untriedMove)
+		}
+	}
+
+	if len(tacticalMoves) > 0 {
+		move = tacticalMoves[rand.N(len(tacticalMoves))]
+	}
+
+	eps := math.Max(0.05, 0.3*math.Exp(-0.1*float64(board.Turn)))
+	if move == -1 && len(nearbyMoves) > 0 && rand.Float64() < eps {
+		move = nearbyMoves[rand.N(len(nearbyMoves))]
 	}
 
 	if move == -1 {
@@ -77,7 +93,7 @@ func (n *node) expand(board *tictactoe.Board, player tictactoe.Player) *node {
 		return cmp == move
 	})
 
-	board.Cells[move] = player
+	board.ApplyMove(move, player)
 
 	child := &node{
 		Parent:       n,
