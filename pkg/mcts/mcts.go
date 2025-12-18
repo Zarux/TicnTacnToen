@@ -135,8 +135,9 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 	wg.Add(c.workers)
 
 	workerRoots := make([]*node, c.workers)
-	for i := range workerRoots {
-		workerRoots[i] = root.deepCopy()
+	workerRoots[0] = root
+	for i := range len(workerRoots) - 1 {
+		workerRoots[i+1] = root.deepCopy()
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)

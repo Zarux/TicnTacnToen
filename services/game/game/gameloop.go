@@ -324,7 +324,7 @@ func (m model) View() string {
 		}
 
 		if botTurn && p == tictactoe.Empty {
-			mark = []string{"o", "x", " "}[rand.N(3)]
+			mark = []string{"o", "x", " ", " "}[rand.N(4)]
 			mark = thinkingColors[rand.IntN(len(thinkingColors))](mark)
 		}
 

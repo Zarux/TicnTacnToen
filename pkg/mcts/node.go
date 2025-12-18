@@ -63,6 +63,10 @@ func (n *node) expand(board *tictactoe.Board, player tictactoe.Player) *node {
 
 	var tacticalMoves []int
 	var nearbyMoves []int
+	var centerMoves []int
+
+	center := float64(board.N) / 2.0
+	radius := math.Max(1, float64(board.N)/3)
 
 	move := -1
 	for _, untriedMove := range n.UntriedMoves {
@@ -74,15 +78,27 @@ func (n *node) expand(board *tictactoe.Board, player tictactoe.Player) *node {
 		if board.HasNeighbor(untriedMove, 2) {
 			nearbyMoves = append(nearbyMoves, untriedMove)
 		}
+
+		x := float64(untriedMove % board.N)
+		y := float64(untriedMove / board.N)
+
+		if math.Abs(x+1-center)+math.Abs(y+1-center) <= radius {
+			centerMoves = append(centerMoves, untriedMove)
+		}
 	}
 
 	if len(tacticalMoves) > 0 {
 		move = tacticalMoves[rand.N(len(tacticalMoves))]
 	}
 
-	eps := math.Max(0.05, 0.3*math.Exp(-0.1*float64(board.Turn)))
-	if move == -1 && len(nearbyMoves) > 0 && rand.Float64() < eps {
+	epsNearby := math.Max(0.05, 0.3*math.Exp(-0.08*float64(board.Turn)))
+	if move == -1 && len(nearbyMoves) > 0 && rand.Float64() < epsNearby {
 		move = nearbyMoves[rand.N(len(nearbyMoves))]
+	}
+
+	epsCenter := math.Max(0.05, 0.2*math.Exp(-0.05*float64(board.Turn)))
+	if move == -1 && len(centerMoves) > 0 && rand.Float64() < epsCenter {
+		move = centerMoves[rand.N(len(centerMoves))]
 	}
 
 	if move == -1 {
