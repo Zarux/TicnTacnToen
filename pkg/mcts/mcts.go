@@ -43,10 +43,6 @@ func New(workers, iterationsPerThread int) *Client {
 	}
 }
 
-func (c *Client) UpdateExplorationParam(ep float64) {
-	c.explorationParam = ep
-}
-
 func (c *Client) UpdateThinkTime(t time.Duration) {
 	c.thinkTime = t
 }
@@ -107,7 +103,7 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 	c.lastMoveStats = nil
 
 	rootBoard.Turn = (rootBoard.N * rootBoard.N) - len(rootBoard.LegalMoves())
-	c.UpdateExplorationParam(explorationParameter(rootBoard.N, rootBoard.K, rootBoard.Turn))
+	c.explorationParam = 0.9 + 0.6*math.Log(float64(rootBoard.N))
 
 	root := c.getNewRoot(rootBoard)
 
@@ -254,7 +250,7 @@ mctsIteration:
 		current := player
 
 		// Selection
-		for len(n.UntriedMoves) == 0 && len(n.Children) > 0 {
+		for !n.canExpand() && len(n.Children) > 0 {
 			n = n.selectChild()
 			err := board.ApplyMove(n.Move, current)
 			if err != nil {
@@ -304,11 +300,4 @@ func (c *Client) rollout(board *tictactoe.Board, player tictactoe.Player) tictac
 
 		current = -current
 	}
-}
-
-func explorationParameter(N, K, turn int) float64 {
-	base := 1.414
-	factor := math.Sqrt(float64(K) / float64(N))
-	turnFactor := float64(N*N-turn) / float64(N*N)
-	return base * factor * turnFactor
 }

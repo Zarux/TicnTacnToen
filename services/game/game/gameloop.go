@@ -19,7 +19,6 @@ import (
 type botPlayer interface {
 	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) (int, error)
 	Stats() *mcts.LastMoveStats
-	UpdateExplorationParam(ep float64)
 }
 
 type model struct {
