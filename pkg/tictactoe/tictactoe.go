@@ -213,6 +213,51 @@ func (b *Board) checkFrom(idx int) Player {
 	return Empty
 }
 
+func (b *Board) GetKRow(winner Player) []int {
+	if winner == Empty {
+		return nil
+	}
+
+	N := b.N
+
+	for move, stone := range b.Cells {
+		if stone != winner {
+			continue
+		}
+
+		x := b.xList[move]
+		y := b.yList[move]
+
+		for _, d := range directions {
+			count := 1
+			kMove := []int{move}
+
+			for _, dir := range []int{-1, 1} {
+				nx := x + d.dx*dir
+				ny := y + d.dy*dir
+
+				for nx >= 0 && ny >= 0 && nx < N && ny < N {
+					nidx := ny*N + nx
+					if b.Cells[nidx] != winner {
+						break
+					}
+
+					count++
+					kMove = append(kMove, nidx)
+					if count >= b.K {
+						return kMove
+					}
+
+					nx += d.dx * dir
+					ny += d.dy * dir
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func (b *Board) TacticalStone(idx int) bool {
 	x := idx % b.N
 	y := idx / b.N

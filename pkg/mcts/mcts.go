@@ -225,13 +225,17 @@ func (c *Client) mctsIteration(ctx context.Context, iterations int, root *node, 
 
 	iterationsDone := 0
 mctsIteration:
-	for i := range iterations {
+	for {
 		select {
 		case <-ctx.Done():
 			break mctsIteration
 		case <-done:
 			break mctsIteration
 		default:
+		}
+
+		if iterations != 0 && iterationsDone >= iterations {
+			break
 		}
 
 		board := board.Clone()
@@ -243,7 +247,7 @@ mctsIteration:
 			n = n.selectChild()
 			err := board.ApplyMove(n.Move, current)
 			if err != nil {
-				panic(fmt.Errorf("illegal move during selection: iteration %d, move %d, err %w", i, n.Move, err))
+				panic(fmt.Errorf("illegal move during selection: iteration %d, move %d, err %w", iterationsDone, n.Move, err))
 			}
 
 			current = -current

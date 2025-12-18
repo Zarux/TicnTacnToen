@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	iterFlag = flag.Int("i", 1_000_000, "max iterations to run (default: 1_000_000)")
+	iterFlag = flag.Int("i", 1_000_000, "max iterations to run (default: 1_000_000) (0 = inf)")
 	concFlag = flag.Int("workers", 2, "concurrent workers (default: 2)")
 )
 

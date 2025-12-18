@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"strconv"
 	"time"
 
@@ -48,6 +49,8 @@ var (
 	p1Style              = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#007e50ff", Dark: "#6afd76ff"}).Render
 	p2Style              = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0003adff", Dark: "#5f61fcff"}).Render
 	cursorStyle          = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#960000ff", Dark: "#fc7e7eff"}).Render
+	winningRowStyle      = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#bb0000ff", Dark: "#df1010ff"}).Render
+	lastWinningRowStyle  = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#f80000ff", Dark: "#f18787ff"}).Render
 	bracketStyle         = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#414141ff", Dark: "#8f8f8fff"}).Render
 	lastMoveBracketStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#000000ff", Dark: "#ffffffff"}).Render
 	statStyle1           = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#8a880fff", Dark: "#ddda1dff"}).Render
@@ -289,6 +292,11 @@ func (m model) View() string {
 		return ""
 	}
 
+	var highlights []int
+	if m.gameOver && m.winner != tictactoe.Empty {
+		highlights = m.board.GetKRow(m.winner)
+	}
+
 	s := m.header
 
 	botTurn := m.bot != nil && m.currentPlayer == m.botPlayer && !m.gameOver
@@ -318,19 +326,25 @@ func (m model) View() string {
 			mark = thinkingColors[rand.IntN(len(thinkingColors))](mark)
 		}
 
-		bStyle := bracketStyle
-
 		switch p {
 		case tictactoe.P1:
 			mark = p1Style(p.Mark())
-			//bStyle = p1Style
 		case tictactoe.P2:
 			mark = p2Style(p.Mark())
-			//bStyle = p2Style
+		}
+
+		bStyle := bracketStyle
+		winningRow := slices.Contains(highlights, i)
+
+		if winningRow {
+			bStyle = winningRowStyle
 		}
 
 		if m.board.Turn > 0 && m.board.LastMove == i && p != tictactoe.Empty {
 			bStyle = lastMoveBracketStyle
+			if winningRow {
+				bStyle = lastWinningRowStyle
+			}
 		}
 
 		s += fmt.Sprintf("%s%s%s", bStyle("["), mark, bStyle("]"))
