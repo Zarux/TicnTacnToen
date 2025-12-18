@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/Zarux/ticntacntoen/pkg/tictactoe"
 )
 
@@ -101,7 +103,7 @@ func (c *Client) getNewRoot(b *tictactoe.Board) (newRoot *node) {
 	return newRoot
 }
 
-func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, player tictactoe.Player) int {
+func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, player tictactoe.Player) (int, error) {
 	c.lastMoveStats = nil
 
 	rootBoard.Turn = (rootBoard.N * rootBoard.N) - len(rootBoard.LegalMoves())
@@ -113,7 +115,7 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 	if len(tacticalMoves) == 1 {
 		move := tacticalMoves[0]
 		if win {
-			return move
+			return move, nil
 		}
 
 		for _, child := range root.Children {
@@ -128,7 +130,7 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 			TacticalOverride: true,
 		}
 
-		return move
+		return move, nil
 	}
 
 	results := make(chan threadResult, c.workers)
@@ -141,14 +143,18 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 		workerRoots[i] = root.deepCopy()
 	}
 
+	g, gCtx := errgroup.WithContext(ctx)
 	t := time.Now()
 	for i := range c.workers {
-		go func() {
+		g.Go(func() error {
 			defer wg.Done()
 
 			root := workerRoots[i]
 			thinkStart := time.Now()
-			numIters := c.mctsIteration(ctx, c.iterations, root, rootBoard.Clone(), player)
+			numIters, err := c.mctsIteration(gCtx, c.iterations, root, rootBoard.Clone(), player)
+			if err != nil {
+				return err
+			}
 
 			visitMap := make(map[int]*node)
 			for _, c := range root.Children {
@@ -160,10 +166,15 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 				visitMap:  visitMap,
 				thinkTime: time.Since(thinkStart),
 			}
-		}()
+
+			return nil
+		})
 	}
 
-	wg.Wait()
+	if err := g.Wait(); err != nil {
+		return 0, err
+	}
+
 	close(results)
 
 	realThinkTime := time.Since(t)
@@ -217,10 +228,10 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 		TacticalOverride: tacticalOverride,
 	}
 
-	return bestMove
+	return bestMove, nil
 }
 
-func (c *Client) mctsIteration(ctx context.Context, iterations int, root *node, board *tictactoe.Board, player tictactoe.Player) int {
+func (c *Client) mctsIteration(ctx context.Context, iterations int, root *node, board *tictactoe.Board, player tictactoe.Player) (int, error) {
 	done := time.After(c.thinkTime)
 
 	iterationsDone := 0
@@ -247,7 +258,7 @@ mctsIteration:
 			n = n.selectChild()
 			err := board.ApplyMove(n.Move, current)
 			if err != nil {
-				panic(fmt.Errorf("illegal move during selection: iteration %d, move %d, err %w", iterationsDone, n.Move, err))
+				return 0, fmt.Errorf("illegal move during selection: iteration %d, move %d, err %w", iterationsDone, n.Move, err)
 			}
 
 			current = -current
@@ -268,7 +279,7 @@ mctsIteration:
 		iterationsDone++
 	}
 
-	return iterationsDone
+	return iterationsDone, nil
 }
 
 func (c *Client) rollout(board *tictactoe.Board, player tictactoe.Player) tictactoe.Player {

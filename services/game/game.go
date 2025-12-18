@@ -15,7 +15,7 @@ import (
 )
 
 type botPlayer interface {
-	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) int
+	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) (int, error)
 	Stats() *mcts.LastMoveStats
 	UpdateThinkTime(t time.Duration)
 	UpdateExplorationParam(ep float64)

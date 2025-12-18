@@ -17,7 +17,7 @@ import (
 )
 
 type botPlayer interface {
-	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) int
+	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) (int, error)
 	Stats() *mcts.LastMoveStats
 	UpdateExplorationParam(ep float64)
 }
@@ -232,7 +232,10 @@ func (m model) beginTick() tea.Cmd {
 
 func (m model) botMove(ctx context.Context, sub chan botDoneMsg) tea.Cmd {
 	return func() tea.Msg {
-		nextMove := m.bot.GetNextMove(ctx, m.board, m.botPlayer)
+		nextMove, err := m.bot.GetNextMove(ctx, m.board, m.botPlayer)
+		if err != nil {
+			panic(err)
+		}
 
 		cursor, winner := m.playerMove(nextMove, m.botPlayer)
 		sub <- botDoneMsg{

@@ -10,7 +10,7 @@ import (
 )
 
 type botPlayer interface {
-	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) int
+	GetNextMove(context.Context, *tictactoe.Board, tictactoe.Player) (int, error)
 }
 
 type Service struct {
@@ -47,7 +47,11 @@ func (s *Service) Play(ctx context.Context) error {
 	for {
 		t := time.Now()
 
-		nextMove := bot.GetNextMove(ctx, board, player)
+		nextMove, err := bot.GetNextMove(ctx, board, player)
+		if err != nil {
+			return err
+		}
+
 		move := board.GetMove(nextMove)
 		board.Play(player, move)
 		stats := bot.Stats()
