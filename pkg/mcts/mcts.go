@@ -137,7 +137,7 @@ func (c *Client) GetNextMove(ctx context.Context, rootBoard *tictactoe.Board, pl
 	workerRoots := make([]*node, c.workers)
 	workerRoots[0] = root
 	for i := range len(workerRoots) - 1 {
-		workerRoots[i+1] = root.deepCopy()
+		workerRoots[i+1] = root.deepCopy(rootBoard.LegalMoves())
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)
@@ -251,6 +251,7 @@ mctsIteration:
 		current := player
 
 		// Selection
+		//for len(n.UntriedMoves) == 0 && len(n.Children) > 0 {
 		for !n.canExpand() && len(n.Children) > 0 {
 			n = n.selectChild()
 			err := board.ApplyMove(n.Move, current)

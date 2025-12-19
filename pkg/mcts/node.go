@@ -64,12 +64,18 @@ func (n *node) expand(board *tictactoe.Board, player tictactoe.Player) *node {
 	var tacticalMoves []int
 	var nearbyMoves []int
 	var centerMoves []int
+	var invalidMoves []int
 
 	center := float64(board.N) / 2.0
 	radius := math.Max(1, float64(board.N)/3)
 
 	move := -1
 	for _, untriedMove := range n.UntriedMoves {
+		if board.Cells[untriedMove] != tictactoe.Empty {
+			invalidMoves = append(invalidMoves, untriedMove)
+			continue
+		}
+
 		if board.TacticalStone(untriedMove) {
 			tacticalMoves = append(tacticalMoves, untriedMove)
 			continue
@@ -106,7 +112,7 @@ func (n *node) expand(board *tictactoe.Board, player tictactoe.Player) *node {
 	}
 
 	n.UntriedMoves = slices.DeleteFunc(n.UntriedMoves, func(cmp int) bool {
-		return cmp == move
+		return cmp == move || slices.Contains(invalidMoves, cmp)
 	})
 
 	board.ApplyMove(move, player)
@@ -140,7 +146,7 @@ func (n *node) backpropagate(winner tictactoe.Player) {
 	}
 }
 
-func (n *node) deepCopy() *node {
+func (n *node) deepCopy(validMoves []int) *node {
 	newNode := &node{
 		Move:   n.Move,
 		Player: n.Player,
@@ -151,12 +157,16 @@ func (n *node) deepCopy() *node {
 	if len(n.UntriedMoves) > 0 {
 		newNode.UntriedMoves = make([]int, len(n.UntriedMoves))
 		copy(newNode.UntriedMoves, n.UntriedMoves)
+
+		newNode.UntriedMoves = slices.DeleteFunc(newNode.UntriedMoves, func(cmp int) bool {
+			return !slices.Contains(validMoves, cmp)
+		})
 	}
 
 	if len(n.Children) > 0 {
 		newNode.Children = make([]*node, len(n.Children))
 		for i, child := range n.Children {
-			newNode.Children[i] = child.deepCopy()
+			newNode.Children[i] = child.deepCopy(validMoves)
 			newNode.Children[i].Parent = newNode
 		}
 	}
